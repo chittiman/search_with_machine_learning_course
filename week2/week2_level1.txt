@@ -1,0 +1,101 @@
+1) Running the basic cmd
+>> python week2/createContentTrainingData.py --output /workspace/datasets/fasttext/labeled_products.txt
+
+2) Checking the output
+>> head -n5 /workspace/datasets/fasttext/labeled_products.txt
+__label__pcmcat161500050000 NETGEAR - Refurbished Wireless-N Router
+__label__abcat0503002 NETGEAR - Refurbished RangeMax Dual-Band Wireless-N Router with 4-Port Switch
+__label__pcmcat171900050026 Rocketfish™ - 1.5' USB Cable
+__label__abcat0916009 Hoover - FloorMate Wood Oil Soap
+__label__abcat0916009 Hoover - FloorMate Tile and Grout Detergent
+
+3) Checking the count
+>> wc -l /workspace/datasets/fasttext/labeled_products.txt
+115503 /workspace/datasets/fasttext/labeled_products.txt
+
+4) Shuffling the data
+shuf /workspace/datasets/fasttext/labeled_products.txt > /workspace/datasets/fasttext/shuffled_labeled_products.txt
+
+5) Split the data into train and test
+head -n10000 /workspace/datasets/fasttext/shuffled_labeled_products.txt > /workspace/datasets/fasttext/training_data.txt
+tail -n10000 /workspace/datasets/fasttext/shuffled_labeled_products.txt > /workspace/datasets/fasttext/test_data.txt
+
+6) Training the basic fastext classifier
+~/fastText-0.9.2/fasttext supervised -input /workspace/datasets/fasttext/training_data.txt    -output product_classifier
+
+7)Testing on adhoc examples
+~/fastText-0.9.2/fasttext predict product_classifier.bin -
+google android
+__label__abcat0707002
+
+8)Testing the model - retrieving only one label
+~/fastText-0.9.2/fasttext test product_classifier.bin /workspace/datasets/fasttext/test_data.txt
+N       9627
+P@1     0.123
+R@1     0.123
+
+9)Testing the model - retrieving 5 labels
+~/fastText-0.9.2/fasttext test product_classifier.bin /workspace/datasets/fasttext/test_data.txt 5
+N       9627
+P@5     0.0437
+R@5     0.218
+
+10) Testing the model - retrieving 10 labels
+~/fastText-0.9.2/fasttext test product_classifier.bin /workspace/datasets/fasttext/test_data.txt 10
+N       9627
+P@10    0.0259
+R@10    0.259
+
+11) Training the model with additional hyperparameters
+~/fastText-0.9.2/fasttext supervised -input /workspace/datasets/fasttext/training_data.txt    -output product_classifier  -epoch 25 -lr 0.5
+
+12)Testing the model with additional hyperparameters
+~/fastText-0.9.2/fasttext test product_classifier.bin /workspace/datasets/fasttext/test_data.txt 
+N       9627
+P@1     0.606
+R@1     0.606
+
+13)Training the model with additional n-grams
+~/fastText-0.9.2/fasttext supervised -input /workspace/datasets/fasttext/training_data.txt    -output product_classifier  -epoch 25 -lr 0.5 -wordNgrams 2
+
+14)Testing the model with  additional n-grams
+~/fastText-0.9.2/fasttext test product_classifier.bin /workspace/datasets/fasttext/test_data.txt 
+N       9627
+P@1     0.602
+R@1     0.602
+
+15)Normalize the training and test data
+cat /workspace/datasets/fasttext/training_data.txt |sed -e "s/\([.\!?,'/()]\)/ \1 /g" | tr "[:upper:]" "[:lower:]" | sed "s/[^[:alnum:]_]/ /g" | tr -s ' ' > /workspace/datasets/fasttext/normalized_training_data.txt
+
+Change before and after
+EVGA - ATX Motherboard 1066/1333/1600/2000MHz (Socket LGA 1156) ------>   evga atx motherboard 1066 1333 1600 2000mhz socket lga 1156 
+Commercial Cool - 12,000 BTU Portable Air Conditioner - White ------>   commercial cool 12 000 btu portable air conditioner white
+Rogue Warrior - Xbox 360 ------>   rogue warrior xbox 360
+BOSS - Loop Station Effect Pedal for Electric Guitars ------>   boss loop station effect pedal for electric guitars
+Centon - Kansas City Chiefs DataStick Keychain 4GB USB 2.0 Flash Drive ------>   centon kansas city chiefs datastick keychain 4gb usb 2 0 flash drive
+
+16) Training on normalized data
+~/fastText-0.9.2/fasttext supervised -input /workspace/datasets/fasttext/normalized_training_data.txt -output product_classifier  -epoch 25 -lr 0.5 -wordNgrams 2
+
+17) Testing on normalized data
+~/fastText-0.9.2/fasttext test product_classifier.bin /workspace/datasets/fasttext/normalized_test_data.txt 
+N       9627
+P@1     0.598
+R@1     0.598
+
+18) Implementing transformations to product names 
+__label__Camcorder_Lights sima 20 watt camcord light
+__label__Vacuum_Belts eureka eur bravo pwrlne victori bel
+__label__Medium case logic 60 disc carri case black
+__label__Vacuum_Bags hoover micro filter a bag
+__label__Audio_Adapters recoton 1 8 mini stereo 3 5mm y adapt
+
+19) Testing on the transformed data
+python week2/createContentTrainingData.py --output /workspace/datasets/fasttext/cleaned_labeled_products.txt
+shuf /workspace/datasets/fasttext/cleaned_labeled_products.txt > /workspace/datasets/fasttext/shuffled_cleaned_labeled_products.txt
+head -n10000 /workspace/datasets/fasttext/shuffled_cleaned_labeled_products.txt > /workspace/datasets/fasttext/cleaned_training_data.txt
+tail -n10000 /workspace/datasets/fasttext/shuffled_cleaned_labeled_products.txt > /workspace/datasets/fasttext/cleaned_test_data.txt
+cat /workspace/datasets/fasttext/cleaned_training_data.txt |sed -e "s/\([.\!?,'/()]\)/ \1 /g" | tr "[:upper:]" "[:lower:]" | sed "s/[^[:alnum:]_]/ /g" | tr -s ' ' > /workspace/datasets/fasttext/normalized_cleaned_training_data.txt
+cat /workspace/datasets/fasttext/cleaned_test_data.txt |sed -e "s/\([.\!?,'/()]\)/ \1 /g" | tr "[:upper:]" "[:lower:]" | sed "s/[^[:alnum:]_]/ /g" | tr -s ' ' > /workspace/datasets/fasttext/normalized_cleaned_test_data.txt
+
+

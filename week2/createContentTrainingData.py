@@ -6,9 +6,18 @@ import os
 import random
 import xml.etree.ElementTree as ET
 from pathlib import Path
+import re
+from nltk.stem import SnowballStemmer
+stemmer = SnowballStemmer("english")
 
 def transform_name(product_name):
-    # IMPLEMENT
+    #IMPLEMENT
+    pattern = re.compile(r"[^a-z0-9_]")
+    product_name = product_name.lower()
+    product_name = re.sub(pattern, " ",product_name)
+    product_words = product_name.split()
+    product_words = [stemmer.stem(word) for word in product_words]
+    product_name = " ".join(product_words)
     return product_name
 
 # Directory for product data

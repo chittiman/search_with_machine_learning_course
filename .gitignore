@@ -138,3 +138,15 @@ dmypy.json
 .vscode/settings.json
 .gitignore
 useful.txt
+cat
+cooking.preprocessed.txt
+cooking.stackexchange.id
+cooking.stackexchange.tar.gz
+cooking.stackexchange.txt
+cooking.test
+cooking.train
+head
+model_cooking.bin
+model_cooking.vec
+product_classifier.bin
+product_classifier.vec

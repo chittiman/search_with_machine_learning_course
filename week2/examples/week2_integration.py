@@ -274,3 +274,8 @@ rsp = client.search(
 )
 
 print(json.dumps(rsp, indent=2))
+
+if __name__ == "__main__":
+    from pprint import pprint
+    pprint (docs)
+    
