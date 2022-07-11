@@ -11,11 +11,22 @@ from urllib.parse import urljoin
 import pandas as pd
 import fileinput
 import logging
+import fasttext
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(format='%(levelname)s:%(message)s')
+
+query_classifier_model_path = "query_classifier.bin"
+query_classifier_model = fasttext.load_model(query_classifier_model_path)
+
+#model.predict("Which baking dish is best to bake a banana bread ?", k=3)
+def classify_query(query,k =1):
+    classifier_output =  query_classifier_model.predict(query)
+    classes = [label.split("__")[-1] for label in classifier_response[0]]
+    scores = classifier_response[0].tolist()
+    return (list(zip(classes,scores)))
 
 # expects clicks and impressions to be in the row
 def create_prior_queries_from_group(
@@ -188,15 +199,33 @@ def create_query(user_query, click_prior_query, filters, sort="_score", sortDir=
 
 def search(client, user_query, index="bbuy_products", sort="_score", sortDir="desc"):
     #### W3: classify the query
+    classes_scores = classify_query(query)
     #### W3: create filters and boosts
+    top_class,top_score = classes_scores[0]
+    threshold = 0.5
+    if top_score >= threshold:
+        filter_single_category = [{ "term":  { "categoryPath": top_class }}]
+
+    top_classes = []
+    cumulative_score = 0
+    for pair in classes_scores:
+        if cumulative_score >= threshold:
+            break
+        else:
+            class_,score = pair
+            top_classes.append(class_)
+            cumulative_score += score
+
+    filter_multiple_categories = [{ "terms":  { "categoryPath": top_classes}}]
+
     # Note: you may also want to modify the `create_query` method above
-    query_obj = create_query(user_query, click_prior_query=None, filters=None, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
+    #query_obj = create_query(user_query, click_prior_query=None, filters=None, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
+    query_obj = create_query(user_query, click_prior_query=None, filters=filter_multiple_categories, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
     logging.info(query_obj)
     response = client.search(query_obj, index=index)
     if response and response['hits']['hits'] and len(response['hits']['hits']) > 0:
         hits = response['hits']['hits']
         print(json.dumps(response, indent=2))
-
 
 if __name__ == "__main__":
     host = 'localhost'
@@ -248,5 +277,3 @@ if __name__ == "__main__":
         search(client=opensearch, user_query=query, index=index_name)
 
         print(query_prompt)
-
-    

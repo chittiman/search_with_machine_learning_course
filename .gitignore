@@ -150,3 +150,13 @@ model_cooking.bin
 model_cooking.vec
 product_classifier.bin
 product_classifier.vec
+test.csv
+.gitignore
+query_classifier.bin
+query_classifier.vec
+query_classifier.bin
+query_classifier.bin
+query_classifier.vec
+rough.py
+train.csv
+train.csv

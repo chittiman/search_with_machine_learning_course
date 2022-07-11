@@ -1,0 +1,25 @@
+python ./week3/create_labeled_queries.py
+
+#wc -l /workspace/datasets/labeled_query_data.txt
+
+#shuf /workspace/datasets/labeled_query_data.txt > /workspace/datasets/fasttext/labeled_queries.txt
+
+#head -n50000 /workspace/datasets/fasttext/labeled_queries.txt > /workspace/datasets/fasttext/query_training_data.txt
+#tail -n10000 /workspace/datasets/fasttext/labeled_queries.txt > /workspace/datasets/fasttext/query_test_data.txt
+
+~/fastText-0.9.2/fasttext supervised -input /workspace/datasets/fasttext/query_training_data.txt    -output query_classifier
+
+~/fastText-0.9.2/fasttext test query_classifier.bin /workspace/datasets/fasttext/query_test_data.txt
+
+~/fastText-0.9.2/fasttext test query_classifier.bin /workspace/datasets/fasttext/query_test_data.txt 1
+~/fastText-0.9.2/fasttext test query_classifier.bin /workspace/datasets/fasttext/query_test_data.txt 3
+~/fastText-0.9.2/fasttext test query_classifier.bin /workspace/datasets/fasttext/query_test_data.txt 5
+
+~/fastText-0.9.2/fasttext supervised -input /workspace/datasets/fasttext/query_training_data.txt    -output query_classifier -epoch 25 -lr 0.5 -wordNgrams 2
+
+
+
+
+
+
+ 
