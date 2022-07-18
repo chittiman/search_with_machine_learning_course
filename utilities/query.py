@@ -21,11 +21,33 @@ logging.basicConfig(format='%(levelname)s:%(message)s')
 query_classifier_model_path = "query_classifier.bin"
 query_classifier_model = fasttext.load_model(query_classifier_model_path)
 
+
+#Week 4
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+
+def create_vector_query(user_query,size=10,source=None):
+    query_embed = model.encode([user_query]).tolist()[0]
+    query_obj = {
+        "size": size,
+        "query": {
+            "knn": {
+                "embedding": {
+                    "vector": query_embed,
+                    "k": size
+                }
+            }
+        }
+    }
+    if source is not None:  # otherwise use the default and retrieve all source
+        query_obj["_source"] = source
+    return query_obj
 #model.predict("Which baking dish is best to bake a banana bread ?", k=3)
 def classify_query(query,k =1):
     classifier_output =  query_classifier_model.predict(query)
-    classes = [label.split("__")[-1] for label in classifier_response[0]]
-    scores = classifier_response[0].tolist()
+    print(classifier_output)
+    classes = [label.split("__")[-1] for label in classifier_output[0]]
+    scores = classifier_output[1].tolist()
     return (list(zip(classes,scores)))
 
 # expects clicks and impressions to be in the row
@@ -197,7 +219,7 @@ def create_query(user_query, click_prior_query, filters, sort="_score", sortDir=
     return query_obj
 
 
-def search(client, user_query, index="bbuy_products", sort="_score", sortDir="desc"):
+def search(client, user_query, index="bbuy_products", sort="_score", sortDir="desc",use_vector= False):
     #### W3: classify the query
     classes_scores = classify_query(query)
     #### W3: create filters and boosts
@@ -220,12 +242,23 @@ def search(client, user_query, index="bbuy_products", sort="_score", sortDir="de
 
     # Note: you may also want to modify the `create_query` method above
     #query_obj = create_query(user_query, click_prior_query=None, filters=None, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
-    query_obj = create_query(user_query, click_prior_query=None, filters=filter_multiple_categories, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
+    
+    #Week 4
+    #query_obj = create_query(user_query, click_prior_query=None, filters=filter_multiple_categories, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
+    if use_vector:
+        query_obj = create_vector_query(user_query,source=["name", "shortDescription"])
+    else:
+        query_obj = create_query(user_query, click_prior_query=None, filters=None, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
+
     logging.info(query_obj)
     response = client.search(query_obj, index=index)
     if response and response['hits']['hits'] and len(response['hits']['hits']) > 0:
         hits = response['hits']['hits']
         print(json.dumps(response, indent=2))
+
+
+    # q = __import__("functools").partial(__import__("os")._exit, 0)  # FIXME
+    # __import__("IPython").embed()  # FIXME  
 
 if __name__ == "__main__":
     host = 'localhost'
@@ -241,7 +274,8 @@ if __name__ == "__main__":
                          help='The OpenSearch port')
     general.add_argument('--user',
                          help='The OpenSearch admin.  If this is set, the program will prompt for password too. If not set, use default of admin/admin')
-
+    #Week 4
+    general.add_argument('--vector',action="store_true", help='Use vector search')
     args = parser.parse_args()
 
     if len(vars(args)) == 0:
@@ -253,6 +287,9 @@ if __name__ == "__main__":
     if args.user:
         password = getpass()
         auth = (args.user, password)
+
+    #Week 4
+    vector = args.vector
 
     base_url = "https://{}:{}/".format(host, port)
     opensearch = OpenSearch(
@@ -270,10 +307,24 @@ if __name__ == "__main__":
     index_name = args.index
     query_prompt = "\nEnter your query (type 'Exit' to exit or hit ctrl-c):"
     print(query_prompt)
-    for line in fileinput.input():
-        query = line.rstrip()
+
+    # for line in fileinput.input():
+    #     query = line.rstrip()
+    #     if query == "Exit":
+    #         break
+    #     #search(client=opensearch, user_query=query, index=index_name)
+    #     #Week 4
+    #     search(client=opensearch, user_query=query, index=index_name,use_vector = vector)
+    #     print(query_prompt)
+
+    query = ""
+    while query != "Exit":
+        query = input()
+        query = query.rstrip()
         if query == "Exit":
             break
-        search(client=opensearch, user_query=query, index=index_name)
+
+        #print(f"use_synonyms:{use_synonyms}")
+        search(client=opensearch, user_query=query, index=index_name,use_vector=vector)#, use_synonyms=use_synonyms
 
         print(query_prompt)

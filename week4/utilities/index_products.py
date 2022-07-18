@@ -21,6 +21,10 @@ logger.setLevel(logging.INFO)
 logging.basicConfig(format='%(levelname)s:%(message)s')
 
 # IMPLEMENT ME: import the sentence transformers module!
+from sentence_transformers import SentenceTransformer
+
+# q = __import__("functools").partial(__import__("os")._exit, 0)  # FIXME
+# __import__("IPython").embed()  # FIXME  
 
 # NOTE: this is not a complete list of fields.  If you wish to add more, put in the appropriate XPath expression.
 #TODO: is there a way to do this using XPath/XSL Functions so that we don't have to maintain a big list?
@@ -107,6 +111,7 @@ def get_opensearch():
 def index_file(file, index_name, reduced=False):
     logger.info("Creating Model")
     # IMPLEMENT ME: instantiate the sentence transformer model!
+    model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
     
     logger.info("Ready to index")
 
@@ -137,10 +142,16 @@ def index_file(file, index_name, reduced=False):
         if reduced and ('categoryPath' not in doc or 'Best Buy' not in doc['categoryPath'] or 'Movies & Music' in doc['categoryPath']):
             continue
         docs.append({'_index': index_name, '_id':doc['sku'][0], '_source' : doc})
+        name = doc["name"][0]
+        names.append(name)
         #docs.append({'_index': index_name, '_source': doc})
         docs_indexed += 1
         if docs_indexed % 200 == 0:
             logger.info("Indexing")
+            embeds = model.encode(names).tolist()
+            assert len(docs) == len(embeds) , "Docs and embeds of unequal length"
+            for doc,embed in zip(docs,embeds):
+                doc["_source"]["embedding"] = embed
             bulk(client, docs, request_timeout=60)
             logger.info(f'{docs_indexed} documents indexed')
             docs = []
